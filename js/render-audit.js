@@ -177,8 +177,8 @@
     let html = '<div style="display:flex;flex-direction:column;gap:16px">';
 
     html += '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 24px">'
-      + '<div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">'
-        + '<div style="display:flex;gap:12px;align-items:center">'
+      + '<div class="audit-hero" style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">'
+        + '<div class="audit-hero-badges" style="display:flex;gap:12px;align-items:center;flex-shrink:0">'
           + badge(initial.classe_bilan_dpe, 'lg')
           + '<span style="font-size:22px;color:var(--muted)">→</span>'
           + badge(final.classe_bilan_dpe, 'lg')
@@ -188,18 +188,18 @@
             + '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">GES</div>'
           + '</div>'
         + '</div>'
-        + '<div style="flex:1;min-width:220px">'
+        + '<div class="audit-hero-addr" style="flex:1;min-width:0">'
           + '<div style="font-size:15px;font-weight:700;margin-bottom:4px;line-height:1.3">' + esc(fmt(audit.address)) + '</div>'
           + '<div style="font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:2px">' + esc(fmt(audit.code_postal_ban)) + ' ' + esc(fmt(audit.nom_commune_ban)) + '</div>'
           + '<div style="font-family:var(--mono);font-size:11px;color:var(--muted)">' + esc(fmt(audit.method)) + '</div>'
         + '</div>'
-        + '<div style="text-align:right;min-width:140px">'
+        + '<div class="audit-hero-meta" style="text-align:right;min-width:0;flex-shrink:0">'
           + '<div style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-bottom:4px">N° AUDIT</div>'
-          + '<div style="font-size:12px;font-weight:600;color:var(--accent);font-family:var(--mono);word-break:break-all">' + esc(fmt(audit.n_audit)) + '</div>'
+          + '<div style="font-size:12px;font-weight:600;color:var(--blue-main);font-family:var(--mono);word-break:break-all">' + esc(fmt(audit.n_audit)) + '</div>'
           + '<div style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:8px">DPE associé</div>'
-          + '<div style="font-size:12px;font-weight:500;font-family:var(--mono);color:var(--accent2);word-break:break-all">' + esc(fmt(audit.numero_dpe)) + '</div>'
+          + '<div style="font-size:12px;font-weight:500;font-family:var(--mono);color:var(--blue-light);word-break:break-all">' + esc(fmt(audit.numero_dpe)) + '</div>'
           + '<div style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:8px">Valide jusqu’au</div>'
-          + '<div style="font-size:12px;font-weight:500;font-family:var(--mono);color:#4ade80">' + esc(fmt(audit.date_fin_validite_audit)) + '</div>'
+          + '<div style="font-size:12px;font-weight:500;font-family:var(--mono);color:var(--success)">' + esc(fmt(audit.date_fin_validite_audit)) + '</div>'
         + '</div>'
       + '</div>'
       + renderExternalLinks(audit)
