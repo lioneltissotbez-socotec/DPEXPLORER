@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADEME DPE Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
+<link rel="stylesheet" href="styles.css">
+<!-- Bibliothèques JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+</head>
+<body data-ui-mode="user">
+
+<!-- BANDEAU MOBILE : fonctions PC-only -->
+<div class="mobile-only-banner" id="mobile-banner">
+  <span class="banner-icon">💻</span>
+  <span>Export, stats et données exhaustives disponibles sur PC uniquement.</span>
+</div>
+
+<!-- BARRE NAVIGATION MOBILE -->
+<nav class="mobile-nav" id="mobile-nav">
+  <button class="mobile-nav-item active" data-panel="addr" onclick="mobileNav(this,'addr')">
+    <span class="mn-icon">🗺️</span>Carte
+  </button>
+  <button class="mobile-nav-item" data-panel="search" onclick="mobileNav(this,'search')">
+    <span class="mn-icon">🔍</span>N° DPE
+  </button>
+  <button class="mobile-nav-item" data-panel="audit" onclick="mobileNav(this,'audit')">
+    <span class="mn-icon">📋</span>Audit
+  </button>
+  <button class="mobile-nav-item" data-panel="addr" onclick="mobileNav(this,'addr')">
+    <span class="mn-icon">📍</span>Adresse
+  </button>
+</nav>
+
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <img src="logo-socotec.png" alt="Socotec" width="40" height="40">
+      <div class="logo-text">
+        <div class="logo-mark">DPE Explorer</div>
+        <div class="logo-sub">Socotec Diagnostic</div>
+      </div>
+    </div>
+    <div class="ui-mode-card">
+      <label for="ui-mode-select">Mode d’affichage</label>
+      <select id="ui-mode-select" onchange="setUIMode(this.value)">
+        <option value="user">👤 Utilisateur</option>
+        <option value="immo">🏘️ Immobilier</option>
+        <option value="expert">🔧 Expert</option>
+      </select>
+      <div class="ui-mode-help">Utilisateur : synthèse et chiffres clés. Expert : tous les détails ADEME.</div>
+    </div>
+
+    <div class="nav-section">Recherche</div>
+    <div class="nav-item" data-panel="addr" onclick="show('addr')">
+      <span class="ico">🗺️</span> Carte & proximité
+    </div>
+    <div class="nav-item" data-panel="search" onclick="show('search')">
+      <span class="ico">🔍</span> Recherche DPE
+    </div>
+    <div class="nav-item" data-panel="audit" onclick="show('audit')">
+      <span class="ico">📋</span> Recherche Audit
+    </div>
+    <div class="nav-section">Outils</div>
+    <div class="nav-item expert-only" data-panel="reno" onclick="show('reno')">
+      <span class="ico">🔧</span> Plan de rénovation
+    </div>
+    <div class="nav-item expert-only" data-panel="view3d" onclick="show('view3d')">
+      <span class="ico">🏠</span> Vue 3D thermique
+    </div>
+    <div class="nav-section">Analyse</div>
+    <div class="nav-item immo-expert-only" data-panel="stats" onclick="show('stats')">
+      <span class="ico">📊</span> Stats par ville
+    </div>
+    <div class="nav-item immo-expert-only" data-panel="export" onclick="show('export')">
+      <span class="ico">📤</span> Export Builder
+    </div>
+    <div class="api-info">
+      <div class="api-pill">
+        <div class="pulse"></div>
+        API ADEME live
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px;font-family:var(--mono)">data.ademe.fr · 15M DPE</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- PANEL : CARTE & PROXIMITÉ (actif par défaut) -->
+    <div class="panel active" id="panel-addr">
+      <h1>Carte &amp; proximité</h1>
+      <p class="subtitle">DPE et audits autour de votre position ou d'une adresse — rayon ajustable</p>
+
+      <!-- Ligne adresse -->
+      <div class="row" style="margin-bottom:10px">
+        <div class="field" style="max-width:120px">
+          <label>Numéro</label>
+          <input type="text" id="inp-num" placeholder="ex : 30" onkeydown="if(event.key==='Enter')searchAddr()">
+        </div>
+        <div class="field">
+          <label>Rue</label>
+          <input type="text" id="inp-rue" placeholder="ex : Rue Jean Becaert" onkeydown="if(event.key==='Enter')searchAddr()">
+        </div>
+        <div class="field" style="max-width:220px">
+          <label>Ville ou code postal</label>
+          <input type="text" id="inp-ville" placeholder="ex : Dunkerque ou 59140" onkeydown="if(event.key==='Enter')searchAddr()">
+        </div>
+        <div class="field" style="max-width:100px">
+          <label>Résultats</label>
+          <select id="inp-addr-size">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+        <button class="btn btn-go" id="btn-addr" onclick="searchAddr()" style="align-self:flex-end">→ Rechercher</button>
+      </div>
+
+      <!-- Mode carte proximité -->
+      <div style="display:flex;align-items:center;gap:14px;margin:-2px 0 14px;padding:10px 14px;background:rgba(0,141,215,.06);border:1px solid rgba(0,141,215,.18);border-radius:8px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;color:var(--text);font-family:var(--mono);text-transform:none;letter-spacing:0">
+          <input type="checkbox" id="f-map-nearby" checked style="width:auto">
+          Mode carte proximité
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:none;letter-spacing:0">
+          <input type="checkbox" id="f-map-click-recenter" checked style="width:auto">
+          Clic carte = recentrer
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:none;letter-spacing:0">
+          <input type="checkbox" id="f-map-dpe" checked onchange="applyMapDisplayFilters && applyMapDisplayFilters()" style="width:auto">
+          DPE
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:none;letter-spacing:0">
+          <input type="checkbox" id="f-map-audit" checked onchange="applyMapDisplayFilters && applyMapDisplayFilters()" style="width:auto">
+          Audits
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:none;letter-spacing:0">
+          <input type="checkbox" id="f-map-exhaustive" checked style="width:auto">
+          Secours CP exact
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:none;letter-spacing:0">
+          <input type="checkbox" id="f-map-use-advanced" onchange="applyMapDisplayFilters && applyMapDisplayFilters()" style="width:auto">
+          Appliquer filtres avancés
+        </label>
+        <span style="font-size:11px;color:var(--muted);font-family:var(--mono)">Collecte principale par position géographique Lambert 93, puis filtrage GPS exact. Cliquez sur la carte pour recentrer.</span>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:auto;font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:none;letter-spacing:0">
+          Rayon
+          <select id="f-map-radius" style="width:auto;font-size:11px;padding:5px 8px">
+            <option value="30">30 m</option>
+            <option value="50" selected>50 m</option>
+            <option value="100">100 m</option>
+            <option value="200">200 m</option>
+            <option value="500">500 m</option>
+            <option value="750">750 m</option>
+            <option value="1000">1000 m</option>
+          </select>
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:none;letter-spacing:0">
+          Scan max
+          <select id="f-map-max-scan" style="width:auto;font-size:11px;padding:5px 8px">
+            <option value="10000">10 000 lignes</option>
+            <option value="20000">20 000 lignes</option>
+            <option value="50000">50 000 lignes</option>
+            <option value="100000" selected>100 000 lignes</option>
+          </select>
+        </label>
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;width:100%;padding-top:6px;border-top:1px solid var(--border)">
+          <span style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-right:4px">Classes affichées</span>
+          <label class="map-filter-class"><input type="checkbox" class="f-map-class" value="A" checked onchange="applyMapDisplayFilters && applyMapDisplayFilters()"> A</label>
+          <label class="map-filter-class"><input type="checkbox" class="f-map-class" value="B" checked onchange="applyMapDisplayFilters && applyMapDisplayFilters()"> B</label>
+          <label class="map-filter-class"><input type="checkbox" class="f-map-class" value="C" checked onchange="applyMapDisplayFilters && applyMapDisplayFilters()"> C</label>
+          <label class="map-filter-class"><input type="checkbox" class="f-map-class" value="D" checked onchange="applyMapDisplayFilters && applyMapDisplayFilters()"> D</label>
+          <label class="map-filter-class"><input type="checkbox" class="f-map-class" value="E" checked onchange="applyMapDisplayFilters && applyMapDisplayFilters()"> E</label>
+          <label class="map-filter-class"><input type="checkbox" class="f-map-class" value="F" checked onchange="applyMapDisplayFilters && applyMapDisplayFilters()"> F</label>
+          <label class="map-filter-class"><input type="checkbox" class="f-map-class" value="G" checked onchange="applyMapDisplayFilters && applyMapDisplayFilters()"> G</label>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%;padding-top:6px;border-top:1px solid var(--border)">
+          <span style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-right:4px">Zone libre</span>
+          <button type="button" class="action-link action-btn" onclick="activateFreeZoneDrawing && activateFreeZoneDrawing()">✏️ Dessiner une zone</button>
+          <button type="button" class="action-link action-btn" onclick="clearMapSelectionZone && clearMapSelectionZone()">✕ Réinitialiser zone</button>
+          <span id="map-zone-info" style="font-size:10px;color:var(--muted);font-family:var(--mono)">Aucune zone dessinée. La sélection filtre les DPE/Audits déjà chargés dans le rayon.</span>
+        </div>
+      </div>
+
+      <!-- Mode recherche exacte -->
+      <div class="expert-only" style="display:flex;align-items:center;gap:10px;margin:-2px 0 14px;padding:10px 14px;background:var(--blue-pale);border:1px solid rgba(74,222,128,.16);border-radius:8px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;color:var(--text);font-family:var(--mono);text-transform:none;letter-spacing:0">
+          <input type="checkbox" id="f-exact-addr" style="width:auto">
+          Recherche exacte adresse texte
+        </label>
+        <span style="font-size:11px;color:var(--muted);font-family:var(--mono)">Mode robuste : interroge l'ADEME puis filtre localement sur numéro + rue + CP/ville. Logs visibles dans la console.</span>
+      </div>
+
+      <!-- Accordéon filtres -->
+      <details id="filter-panel" class="expert-only" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden">
+        <summary style="padding:12px 18px;cursor:pointer;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-family:var(--mono);display:flex;align-items:center;gap:8px;list-style:none">
+          <span>⚙</span> Filtres avancés
+          <span id="filter-badge" style="display:none;background:var(--accent);color:#0e0f11;font-size:10px;padding:1px 7px;border-radius:20px;font-weight:700">0</span>
+          <span style="margin-left:auto;color:var(--muted)">▼</span>
+        </summary>
+        <div style="padding:16px 18px;display:grid;grid-template-columns:repeat(5,1fr);gap:14px;border-top:1px solid var(--border)">
+
+          <!-- Étiquette DPE -->
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);margin-bottom:8px">Étiquette DPE</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px" id="f-etiq-dpe">
+              <button class="f-btn" data-group="etiq_dpe" data-val="A" onclick="toggleFilter(this)" style="background:#1a5c3a;color:#4ade80">A</button>
+              <button class="f-btn" data-group="etiq_dpe" data-val="B" onclick="toggleFilter(this)" style="background:#2d5e16;color:#86efac">B</button>
+              <button class="f-btn" data-group="etiq_dpe" data-val="C" onclick="toggleFilter(this)" style="background:#4d6b0f;color:#bef264">C</button>
+              <button class="f-btn" data-group="etiq_dpe" data-val="D" onclick="toggleFilter(this)" style="background:#7c5a08;color:#fde68a">D</button>
+              <button class="f-btn" data-group="etiq_dpe" data-val="E" onclick="toggleFilter(this)" style="background:#7c3a08;color:#fdba74">E</button>
+              <button class="f-btn" data-group="etiq_dpe" data-val="F" onclick="toggleFilter(this)" style="background:#7c1212;color:#fca5a5">F</button>
+              <button class="f-btn" data-group="etiq_dpe" data-val="G" onclick="toggleFilter(this)" style="background:#500d0d;color:#ef4444">G</button>
+            </div>
+          </div>
+
+          <!-- Étiquette GES -->
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);margin-bottom:8px">Étiquette GES</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px" id="f-etiq-ges">
+              <button class="f-btn" data-group="etiq_ges" data-val="A" onclick="toggleFilter(this)" style="background:#1a5c3a;color:#4ade80">A</button>
+              <button class="f-btn" data-group="etiq_ges" data-val="B" onclick="toggleFilter(this)" style="background:#2d5e16;color:#86efac">B</button>
+              <button class="f-btn" data-group="etiq_ges" data-val="C" onclick="toggleFilter(this)" style="background:#4d6b0f;color:#bef264">C</button>
+              <button class="f-btn" data-group="etiq_ges" data-val="D" onclick="toggleFilter(this)" style="background:#7c5a08;color:#fde68a">D</button>
+              <button class="f-btn" data-group="etiq_ges" data-val="E" onclick="toggleFilter(this)" style="background:#7c3a08;color:#fdba74">E</button>
+              <button class="f-btn" data-group="etiq_ges" data-val="F" onclick="toggleFilter(this)" style="background:#7c1212;color:#fca5a5">F</button>
+              <button class="f-btn" data-group="etiq_ges" data-val="G" onclick="toggleFilter(this)" style="background:#500d0d;color:#ef4444">G</button>
+            </div>
+          </div>
+
+          <!-- Période construction -->
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);margin-bottom:8px">Période construction</div>
+            <div style="display:flex;flex-direction:column;gap:4px" id="f-periode">
+              <button class="f-btn f-btn-sm" data-group="periode" data-val="Avant 1948" onclick="toggleFilter(this)">Avant 1948</button>
+              <button class="f-btn f-btn-sm" data-group="periode" data-val="1948-1974" onclick="toggleFilter(this)">1948-1974</button>
+              <button class="f-btn f-btn-sm" data-group="periode" data-val="1975-1981" onclick="toggleFilter(this)">1975-1981</button>
+              <button class="f-btn f-btn-sm" data-group="periode" data-val="1982-1989" onclick="toggleFilter(this)">1982-1989</button>
+              <button class="f-btn f-btn-sm" data-group="periode" data-val="1990-2000" onclick="toggleFilter(this)">1990-2000</button>
+              <button class="f-btn f-btn-sm" data-group="periode" data-val="2001-2012" onclick="toggleFilter(this)">2001-2012</button>
+              <button class="f-btn f-btn-sm" data-group="periode" data-val="Après 2012" onclick="toggleFilter(this)">Après 2012</button>
+            </div>
+          </div>
+
+          <!-- Type habitation -->
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);margin-bottom:8px">Type habitation</div>
+            <div style="display:flex;flex-direction:column;gap:4px" id="f-type-hab">
+              <button class="f-btn f-btn-sm" data-group="type_hab" data-val="appartement" onclick="toggleFilter(this)">🏢 Appartement</button>
+              <button class="f-btn f-btn-sm" data-group="type_hab" data-val="maison" onclick="toggleFilter(this)">🏠 Maison</button>
+              <button class="f-btn f-btn-sm" data-group="type_hab" data-val="immeuble" onclick="toggleFilter(this)">🏬 Immeuble</button>
+            </div>
+          </div>
+
+          <!-- Colonne droite : énergie + dates + surface -->
+          <div style="display:flex;flex-direction:column;gap:14px">
+
+            <!-- Énergie chauffage -->
+            <div>
+              <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);margin-bottom:6px">Énergie chauffage</div>
+              <div style="display:flex;flex-direction:column;gap:4px" id="f-energie">
+                <button class="f-btn f-btn-sm" data-group="energie" data-val="Gaz naturel" onclick="toggleFilter(this)">🔵 Gaz naturel</button>
+                <button class="f-btn f-btn-sm" data-group="energie" data-val="Électricité" onclick="toggleFilter(this)">⚡ Électricité</button>
+                <button class="f-btn f-btn-sm" data-group="energie" data-val="Fioul domestique" onclick="toggleFilter(this)">🟤 Fioul</button>
+                <button class="f-btn f-btn-sm" data-group="energie" data-val="Bois" onclick="toggleFilter(this)">🪵 Bois</button>
+                <button class="f-btn f-btn-sm" data-group="energie" data-val="Réseau de chaleur" onclick="toggleFilter(this)">🌡 Réseau chaleur</button>
+              </div>
+            </div>
+
+            <!-- Plage de dates du DPE -->
+            <div>
+              <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);margin-bottom:6px">Date établissement DPE</div>
+              <div style="display:flex;gap:6px;align-items:center">
+                <input type="date" id="f-date-min" style="font-size:11px;padding:5px 8px;flex:1" onchange="updateFilterBadge()">
+                <span style="color:var(--muted);font-size:11px">→</span>
+                <input type="date" id="f-date-max" style="font-size:11px;padding:5px 8px;flex:1" onchange="updateFilterBadge()">
+              </div>
+            </div>
+
+            <!-- Surface -->
+            <div>
+              <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);margin-bottom:6px">Surface (m²)</div>
+              <div style="display:flex;gap:6px;align-items:center">
+                <input type="number" id="f-surf-min" placeholder="Min" style="font-size:11px;padding:5px 8px;flex:1" onchange="updateFilterBadge()">
+                <span style="color:var(--muted);font-size:11px">→</span>
+                <input type="number" id="f-surf-max" placeholder="Max" style="font-size:11px;padding:5px 8px;flex:1" onchange="updateFilterBadge()">
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Pied filtres : tri + reset -->
+        <div style="padding:10px 18px;border-top:1px solid var(--border);display:flex;align-items:center;gap:12px">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono)">Trier par</div>
+          <select id="f-sort" style="font-size:12px;padding:5px 10px;flex:none;width:auto" onchange="updateFilterBadge()">
+            <option value="-date_etablissement_dpe">Date DPE (récent)</option>
+            <option value="date_etablissement_dpe">Date DPE (ancien)</option>
+            <option value="etiquette_dpe">Étiquette (A→G)</option>
+            <option value="-etiquette_dpe">Étiquette (G→A)</option>
+            <option value="conso_5_usages_par_m2_ef">Conso EF (croissant)</option>
+            <option value="-conso_5_usages_par_m2_ef">Conso EF (décroissant)</option>
+            <option value="cout_total_5_usages">Coût annuel (croissant)</option>
+            <option value="-cout_total_5_usages">Coût annuel (décroissant)</option>
+            <option value="surface_habitable_logement">Surface (croissante)</option>
+            <option value="-surface_habitable_logement">Surface (décroissante)</option>
+          </select>
+          <button onclick="resetFilters()" style="font-family:var(--mono);font-size:11px;padding:5px 12px;background:none;border:1px solid var(--border2);color:var(--muted);border-radius:var(--r2);cursor:pointer;margin-left:auto">✕ Réinitialiser les filtres</button>
+        </div>
+      </details>
+
+      <div class="url-bar" id="url-addr">—</div>
+      <div class="status" id="st-addr"></div>
+
+      <!-- BARRE DE PROGRESSION COLLECTE -->
+      <div id="search-progress" style="display:none">
+        <div class="search-progress-wrap">
+          <div class="search-progress-header">
+            <span id="prog-phase-label" class="prog-phase">Recherche…</span>
+            <span class="prog-counters">
+              <span class="prog-counter prog-dpe">
+                🏠 <strong id="prog-dpe-count">0</strong> DPE
+              </span>
+              <span class="prog-counter prog-audit">
+                📋 <strong id="prog-audit-count">0</strong> Audit(s)
+              </span>
+            </span>
+          </div>
+          <div class="prog-track">
+            <div id="prog-bar-fill" class="prog-fill"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="addr-map-card" class="addr-map-card" style="display:none">
+        <div class="addr-map-head">
+          <span>🗺️ Carte DPE à proximité</span>
+          <span id="addr-map-info" style="color:var(--blue-main);margin-left:auto">—</span>
+        </div>
+        <div id="addr-map"></div>
+      </div>
+      <div id="result-addr"></div>
+    </div>
+
+    <!-- PANEL : RECHERCHE DPE -->
+    <div class="panel" id="panel-search">
+      <h1>Recherche DPE</h1>
+      <p class="subtitle">Retrouve un diagnostic à partir de son numéro ADEME officiel</p>
+      <div class="row">
+        <div class="field">
+          <label>Numéro DPE (N°ADEME)</label>
+          <input type="text" id="inp-dpe" value="2559E3512532V" placeholder="ex : 2559E3512532V"
+                 onkeydown="if(event.key==='Enter')searchDpe()">
+        </div>
+        <button class="btn btn-go" id="btn-search" onclick="searchDpe()">→ Rechercher</button>
+      </div>
+
+      <!-- Bloc liste ADEME : PC uniquement, masqué par défaut, révélé par une coche -->
+      <div class="pc-only-block" style="margin:8px 0 4px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-sec);text-transform:none;letter-spacing:0;font-family:var(--body);font-weight:500">
+          <input type="checkbox" id="toggle-ademe-list" style="width:auto;accent-color:var(--blue-main)"
+                 onchange="document.getElementById('ademe-list-block').style.display=this.checked?'block':'none'">
+          Afficher plusieurs numéros sur la carte (liste)
+        </label>
+      </div>
+      <div id="ademe-list-block" style="display:none;margin-top:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px">
+        <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
+          <div class="field" style="min-width:280px;flex:1">
+            <label>Liste de N° ADEME à afficher sur la carte</label>
+            <textarea id="inp-ademe-list" rows="4"
+              placeholder="Collez un ou plusieurs numéros, un par ligne ou séparés par virgule :&#10;2425E4447729P&#10;2325E3595774B&#10;A25250133906E"
+              style="min-height:92px;resize:vertical"></textarea>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;min-width:220px;margin-top:20px">
+            <button class="btn btn-go" id="btn-map-list" onclick="loadAdemeListOnMap()">🗺 Afficher la sélection sur la carte</button>
+            <div style="font-size:11px;color:var(--muted);font-family:var(--mono);line-height:1.5">
+              Accepte les N° DPE et les N° audit. Si la liste est vide, le numéro DPE saisi au-dessus est utilisé.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="url-bar" id="url-search">—</div>
+      <div class="status" id="st-search"></div>
+      <!-- Coche "voir détails expert" — mobile uniquement, gérée par JS inline -->
+      <div class="mobile-expert-toggle" id="expert-toggle-search" onclick="toggleMobileExpert('result-search', this)">
+        <input type="checkbox" id="chk-expert-search" style="pointer-events:none">
+        <span>
+          <span class="toggle-label-off">🔬 Voir les détails techniques complets</span>
+          <span class="toggle-label-on" style="display:none">✕ Masquer les détails techniques</span>
+        </span>
+      </div>
+      <div id="result-search" class="mobile-user-only"></div>
+    </div>
+
+    <!-- PANEL : RECHERCHE AUDIT -->
+    <div class="panel" id="panel-audit">
+      <h1>Recherche Audit énergétique</h1>
+      <p class="subtitle">Retrouve un audit à partir de son numéro ADEME — scénarios, étapes, coûts et gains</p>
+      <div class="row">
+        <div class="field">
+          <label>N° audit ADEME</label>
+          <input type="text" id="inp-audit" value="A25250133906E" placeholder="ex : A25250133906E"
+                 onkeydown="if(event.key==='Enter')searchAuditByNumber()">
+        </div>
+        <button class="btn btn-go" id="btn-audit" onclick="searchAuditByNumber()">→ Rechercher l'audit</button>
+      </div>
+      <div class="url-bar" id="url-audit">—</div>
+      <div class="status" id="st-audit"></div>
+      <!-- Coche "voir détails expert" — mobile uniquement -->
+      <div class="mobile-expert-toggle" id="expert-toggle-audit" onclick="toggleMobileExpert('result-audit', this)">
+        <input type="checkbox" id="chk-expert-audit" style="pointer-events:none">
+        <span>
+          <span class="toggle-label-off">🔬 Voir les détails techniques complets</span>
+          <span class="toggle-label-on" style="display:none">✕ Masquer les détails techniques</span>
+        </span>
+      </div>
+      <div id="result-audit" class="mobile-user-only"></div>
+    </div>
+
+    <!-- PANEL : PLAN DE RÉNOVATION -->
+    <div class="panel" id="panel-reno">
+      <h1>Plan de rénovation</h1>
+      <p class="subtitle">Importez un fichier XML ADEME pour afficher les scénarios de travaux complets</p>
+
+      <div id="reno-drop" onclick="document.getElementById('reno-xml-input').click()"
+        style="border:1.5px dashed var(--border2);border-radius:10px;padding:32px;text-align:center;cursor:pointer;background:var(--surface2);margin-bottom:20px;transition:all .2s">
+        <input type="file" id="reno-xml-input" accept=".xml" style="display:none" onchange="loadRenoXml(this)">
+        <div style="font-size:32px;margin-bottom:12px">📄</div>
+        <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">Glissez le fichier XML ADEME ici</div>
+        <div style="font-size:12px;color:var(--muted)">Fichier généré par LICIEL, Argos Ithaque, Climawin ou tout logiciel certifié 3CL-DPE 2021</div>
+        <div style="margin-top:14px;display:inline-block;padding:8px 20px;border-radius:6px;background:var(--blue-pale);color:var(--blue-main);font-size:12px;font-family:var(--mono)">Sélectionner un fichier XML</div>
+      </div>
+
+      <div class="status" id="st-reno"></div>
+      <div id="result-reno"></div>
+    </div>
+
+    <!-- PANEL : VUE 3D -->
+    <div class="panel" id="panel-view3d">
+      <h1>Vue 3D thermique</h1>
+      <p class="subtitle">Représentation du logement avec carte thermique des parois — importez un XML ADEME</p>
+
+      <div id="view3d-drop" onclick="document.getElementById('view3d-file').click()"
+        style="border:1.5px dashed var(--border2);border-radius:10px;padding:32px;text-align:center;cursor:pointer;background:var(--surface2);margin-bottom:16px;transition:all .2s" id="drop3d">
+        <input type="file" id="view3d-file" accept=".xml,.xls,.xlsx" style="display:none" onchange="load3dFile(this.files[0])">
+        <div style="font-size:32px;margin-bottom:10px">📦</div>
+        <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">Glissez le fichier XML ADEME</div>
+        <div style="font-size:12px;color:var(--muted)">Génère une maquette 3D orientée avec carte thermique des U-values</div>
+        <div style="margin-top:14px;display:inline-block;padding:8px 20px;border-radius:6px;background:var(--blue-pale);color:var(--blue-main);font-size:12px;font-family:var(--mono)">Sélectionner un fichier XML</div>
+      </div>
+
+      <div class="status" id="st-3d"></div>
+
+      <!-- Contrôles -->
+      <div id="controls3d" style="display:none;margin-bottom:12px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Vue :</div>
+          <button onclick="setView3d('perspective')" class="btn3d active" id="btn-persp">Perspective</button>
+          <button onclick="setView3d('north')"       class="btn3d" id="btn-north">Nord</button>
+          <button onclick="setView3d('south')"       class="btn3d" id="btn-south">Sud</button>
+          <button onclick="setView3d('east')"        class="btn3d" id="btn-east">Est</button>
+          <button onclick="setView3d('west')"        class="btn3d" id="btn-west">Ouest</button>
+          <button onclick="setView3d('top')"         class="btn3d" id="btn-top">Dessus</button>
+          <div style="flex:1"></div>
+          <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="checkbox" id="toggle-reno" onchange="toggleRenovation(this.checked)"> Voir après travaux
+          </label>
+          <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="checkbox" id="toggle-xray" onchange="toggleXray(this.checked)"> Mode X-ray
+          </label>
+        </div>
+      </div>
+
+      <!-- Canvas 3D -->
+      <div id="canvas3d-wrap" style="display:none;border:1px solid var(--border);border-radius:10px;overflow:hidden;position:relative;background:#0a0a0f">
+        <canvas id="canvas3d" style="display:block;width:100%;height:500px"></canvas>
+        <!-- Légende U-values -->
+        <div id="legend3d" style="position:absolute;top:12px;right:12px;background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 14px;font-family:var(--mono);font-size:10px">
+          <div style="color:rgba(255,255,255,.6);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em">U-value (W/m²K)</div>
+          <div style="display:flex;flex-direction:column;gap:3px" id="legend-items"></div>
+          <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);font-size:9px">Cliquez sur une paroi pour l'inspecter</div>
+        </div>
+        <!-- Info paroi au survol -->
+        <div id="tooltip3d" style="display:none;position:absolute;background:rgba(0,0,0,.85);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:8px 12px;font-family:var(--mono);font-size:11px;pointer-events:none;max-width:220px"></div>
+        <!-- Boussole -->
+        <div style="position:absolute;bottom:12px;left:12px;font-size:20px;opacity:.6">🧭</div>
+        <div id="compass-n" style="position:absolute;bottom:42px;left:22px;font-size:10px;color:rgba(255,255,255,.5);font-family:var(--mono)">N</div>
+      </div>
+
+      <!-- Stats parois -->
+      <div id="parois3d-stats" style="display:none;margin-top:16px"></div>
+    </div>
+
+
+    <!-- PANEL : STATS -->
+    <div class="panel" id="panel-stats">
+      <h1>Stats par ville</h1>
+      <p class="subtitle">Analyse la répartition des étiquettes DPE sur un code postal</p>
+      <div class="row">
+        <div class="field">
+          <label>Code postal</label>
+          <input type="text" id="inp-cp" value="59140" maxlength="5"
+                 onkeydown="if(event.key==='Enter')loadStats()">
+        </div>
+        <div class="field" style="max-width:160px">
+          <label>Échantillon</label>
+          <select id="inp-size">
+            <option value="100">100 DPE</option>
+            <option value="500" selected>500 DPE</option>
+            <option value="1000">1000 DPE</option>
+          </select>
+        </div>
+        <button class="btn btn-go" id="btn-stats" onclick="loadStats()">→ Analyser</button>
+      </div>
+      <div class="url-bar" id="url-stats">—</div>
+      <div class="status" id="st-stats"></div>
+      <div id="result-stats"></div>
+    </div>
+
+    <!-- PANEL : EXPORT BUILDER -->
+    <div class="panel" id="panel-export">
+      <h1>Export Builder</h1>
+      <p class="subtitle">Compose une sélection de DPE, construis tes colonnes, sauvegarde ton modèle et exporte en Excel ou CSV.</p>
+
+      <div class="export-layout-top">
+        <div class="card export-card">
+          <div class="card-title">1 · Sélection des biens</div>
+          <div class="field" style="margin-bottom:12px">
+            <label>Liste de N° ADEME DPE</label>
+            <textarea id="export-dpe-numbers" class="export-textarea" placeholder="Colle ici un numéro par ligne ou séparé par des espaces / virgules
+Ex :
+2425E4447729P
+2325E3595774B"></textarea>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-go" onclick="loadExportFromNumbers()">→ Charger la liste</button>
+            <button class="btn btn-ghost" onclick="loadExportFromVisibleMap()">◎ Utiliser les DPE visibles sur la carte</button>
+          </div>
+          <div class="status" id="st-export"></div>
+        </div>
+
+        <div class="card export-card">
+          <div class="card-title">2 · Synthèse de la sélection</div>
+          <div id="export-dashboard"><div class="card" style="color:var(--muted);margin:0">Aucune donnée chargée pour le moment.</div></div>
+        </div>
+      </div>
+
+      <div class="export-builder-grid">
+        <div class="card export-card">
+          <div class="card-title">3 · Catalogue des champs</div>
+          <p class="export-help">Clique sur un champ pour l’ajouter. Les champs non présents dans la sélection restent disponibles mais sont grisés.</p>
+          <div id="export-field-catalog"></div>
+        </div>
+
+        <div class="card export-card">
+          <div class="card-title">4 · Colonnes du tableau</div>
+          <p class="export-help">Glisse les lignes pour réordonner. Le titre export est modifiable, le champ ADEME reste visible.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <button class="btn btn-ghost" onclick="resetExportColumns()">Modèle standard</button>
+            <button class="btn btn-ghost" onclick="clearExportColumns()">Vider</button>
+          </div>
+          <div id="export-selected-columns" class="export-selected-columns"></div>
+
+          <div class="sep"></div>
+          <div class="card-title">Modèle de tableau</div>
+          <div class="row" style="align-items:flex-end">
+            <div class="field">
+              <label>Nom du modèle</label>
+              <input id="export-template-name" value="Configuration export DPE">
+            </div>
+            <button class="btn btn-ghost" onclick="saveExportTemplateLocal()">Sauver local</button>
+            <button class="btn btn-ghost" onclick="loadExportTemplateLocal()">Charger local</button>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-ghost" onclick="downloadExportTemplate()">Télécharger JSON</button>
+            <label class="btn btn-ghost" style="cursor:pointer">Importer JSON<input type="file" accept=".json,application/json" style="display:none" onchange="importExportTemplate(this)"></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card export-card">
+        <div class="card-title">5 · Aperçu et export</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+          <button class="btn btn-go" onclick="exportXlsx()">⬇ Export Excel</button>
+          <button class="btn btn-ghost" onclick="exportCsv()">⬇ Export CSV</button>
+          <button class="btn btn-ghost" onclick="renderExportPreview()">↻ Actualiser l’aperçu</button>
+        </div>
+        <div id="export-preview"></div>
+      </div>
+    </div>
+
+
+  </main>
+</div><!-- /.shell -->
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/map.js"></script>
+<script src="js/render-dpe.js"></script>
+<script src="js/dpe.js"></script>
+<script src="js/render-audit.js"></script>
+<script src="js/audit.js"></script>
+<script src="js/export-builder.js"></script>
+<script src="app.js"></script>
+<script>
+/* ── Navigation mobile ── */
+function mobileNav(btn, panelId) {
+  document.querySelectorAll('.mobile-nav-item').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (typeof window.activatePanel === 'function') window.activatePanel(panelId);
+}
+
+/* ── Coche expert mobile ──
+   Bascule la classe 'mobile-expert-on' sur la div result cible.
+   Le CSS s'occupe d'afficher/masquer les blocs expert selon cette classe. */
+function toggleMobileExpert(resultId, toggleEl) {
+  const result = document.getElementById(resultId);
+  const chk    = toggleEl.querySelector('input[type="checkbox"]');
+  const on     = toggleEl.querySelector('.toggle-label-on');
+  const off    = toggleEl.querySelector('.toggle-label-off');
+  if (!result) return;
+
+  const isNowExpert = result.classList.toggle('mobile-expert-on');
+  if (chk)  chk.checked  = isNowExpert;
+  if (on)   on.style.display  = isNowExpert ? 'inline' : 'none';
+  if (off)  off.style.display = isNowExpert ? 'none'   : 'inline';
+}
+
+/* Réinitialiser la coche quand une nouvelle recherche est lancée
+   (la fiche change, on revient en mode synthèse) */
+document.addEventListener('DOMContentLoaded', function () {
+  ['result-search', 'result-audit'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const obs = new MutationObserver(function() {
+      el.classList.remove('mobile-expert-on');
+      const toggleId = id === 'result-search' ? 'expert-toggle-search' : 'expert-toggle-audit';
+      const toggleEl = document.getElementById(toggleId);
+      if (!toggleEl) return;
+      const chk = toggleEl.querySelector('input[type="checkbox"]');
+      const on  = toggleEl.querySelector('.toggle-label-on');
+      const off = toggleEl.querySelector('.toggle-label-off');
+      if (chk) chk.checked = false;
+      if (on)  on.style.display  = 'none';
+      if (off) off.style.display = 'inline';
+    });
+    obs.observe(el, { childList: true });
+  });
+});
+</script>
+</body>
+</html>
