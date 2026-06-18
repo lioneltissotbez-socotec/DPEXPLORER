@@ -1359,3 +1359,68 @@ body[data-ui-mode="user"] .main { max-width: 1180px; }
   background: var(--surface2) !important;
   border: 1px solid var(--border) !important;
 }
+
+/* ── HERO FICHE AUDIT — LAYOUT MOBILE ───────────────────────── */
+/* Sur mobile : badges en haut, adresse en dessous, méta en dessous */
+@media (max-width: 600px) {
+  .audit-hero {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  .audit-hero-badges {
+    flex-shrink: 0;
+    width: 100%;
+  }
+  .audit-hero-addr {
+    width: 100%;
+    min-width: 0 !important;
+  }
+  .audit-hero-meta {
+    width: 100%;
+    text-align: left !important;
+    min-width: 0 !important;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    padding: 12px 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 16px;
+  }
+  /* Les paires label/valeur dans la méta s'affichent côte à côte */
+  .audit-hero-meta [style*="font-size:10px"] {
+    font-size: 10px !important;
+    color: var(--muted) !important;
+    margin-top: 0 !important;
+    margin-bottom: 2px !important;
+  }
+  .audit-hero-meta [style*="font-size:12px"] {
+    font-size: 13px !important;
+    margin-bottom: 8px;
+  }
+}
+
+/* ── STATUS SOUS BOUTON : PLUS VISIBLE ──────────────────────── */
+/* Le .status dans panel-search et panel-audit est maintenant
+   positionné juste sous le bouton. On le rend plus grand et visible. */
+#panel-search .status,
+#panel-audit  .status {
+  font-size: 15px !important;
+  padding: 14px 18px !important;
+  border-radius: var(--r) !important;
+  margin-top: 4px;
+  margin-bottom: 12px;
+}
+#panel-search .status.info,
+#panel-audit  .status.info {
+  background: var(--info-bg) !important;
+  border: 1.5px solid #90C8E8 !important;
+  color: var(--blue-dark) !important;
+}
+#panel-search .spin,
+#panel-audit  .spin {
+  font-size: 18px;
+  display: inline-block;
+  animation: spin 1s linear infinite;
+  margin-right: 4px;
+}

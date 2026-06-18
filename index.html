@@ -366,6 +366,7 @@
         </div>
         <button class="btn btn-go" id="btn-search" onclick="searchDpe()">→ Rechercher</button>
       </div>
+      <div class="status" id="st-search"></div>
 
       <!-- Bloc liste ADEME : PC uniquement, masqué par défaut, révélé par une coche -->
       <div class="pc-only-block" style="margin:8px 0 4px">
@@ -393,7 +394,6 @@
       </div>
 
       <div class="url-bar" id="url-search">—</div>
-      <div class="status" id="st-search"></div>
       <!-- Coche "voir détails expert" — mobile uniquement, gérée par JS inline -->
       <div class="mobile-expert-toggle" id="expert-toggle-search" onclick="toggleMobileExpert('result-search', this)">
         <input type="checkbox" id="chk-expert-search" style="pointer-events:none">
@@ -417,8 +417,8 @@
         </div>
         <button class="btn btn-go" id="btn-audit" onclick="searchAuditByNumber()">→ Rechercher l'audit</button>
       </div>
-      <div class="url-bar" id="url-audit">—</div>
       <div class="status" id="st-audit"></div>
+      <div class="url-bar" id="url-audit">—</div>
       <!-- Coche "voir détails expert" — mobile uniquement -->
       <div class="mobile-expert-toggle" id="expert-toggle-audit" onclick="toggleMobileExpert('result-audit', this)">
         <input type="checkbox" id="chk-expert-audit" style="pointer-events:none">
