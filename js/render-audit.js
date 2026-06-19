@@ -59,15 +59,15 @@
 
   function kv(label, value) {
     return '<div style="display:contents">'
-      + '<span style="color:var(--muted);font-size:11px;font-family:var(--mono);padding:6px 0;border-bottom:1px solid var(--border)">' + esc(label) + '</span>'
-      + '<span style="font-size:12px;font-weight:500;color:var(--text);padding:6px 0;border-bottom:1px solid var(--border);word-break:break-word">' + value + '</span>'
+      + '<span class="audit-kv-key" style="color:var(--text-sec);font-size:11px;font-family:var(--mono);padding:7px 0 7px 12px;border-bottom:1px solid var(--border)">' + esc(label) + '</span>'
+      + '<span class="audit-kv-val" style="font-size:13px;font-weight:600;color:var(--text);padding:7px 12px 7px 0;border-bottom:1px solid var(--border);word-break:break-word">' + value + '</span>'
       + '</div>';
   }
 
   function block(title, color, rows) {
     return '<div class="audit-block" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden">'
       + '<div style="background:' + color + ';padding:8px 14px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.72)">' + esc(title) + '</div>'
-      + '<div style="display:grid;grid-template-columns:1fr 1fr;padding:4px 14px">' + rows.join('') + '</div>'
+      + '<div class="audit-kv-grid" style="display:grid;grid-template-columns:max-content 1fr;padding:4px 14px">' + rows.join('') + '</div>'
       + '</div>';
   }
 
@@ -114,10 +114,10 @@
     let links = '<div class="audit-links" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">';
     if (maps)     links += '<a href="' + maps + '" target="_blank" rel="noopener" class="action-link">🗺 Maps</a>';
     if (street)   links += '<a href="' + street + '" target="_blank" rel="noopener" class="action-link">👁 Street View</a>';
-    if (auditUrl) links += '<a href="' + auditUrl + '" target="_blank" rel="noopener" class="action-link" style="color:var(--accent2)">📋 Audit ADEME</a>';
-    if (dpeUrl)   links += '<a href="' + dpeUrl + '" target="_blank" rel="noopener" class="action-link" style="color:var(--accent2)">🏛 DPE associé</a>';
-    if (cadastre) links += '<a href="' + cadastre + '" target="_blank" rel="noopener" class="action-link" style="color:#f59e0b">📐 Parcelle IGN/Cadastre</a>';
-    if (rnbId)    links += '<span class="action-link" title="ID RNB exposé par ADEME — lien direct désactivé car /batiment/<id> peut renvoyer 404" style="color:#22d3ee;cursor:default">🏗 ID RNB ' + esc(rnbId) + '</span>';
+    if (auditUrl) links += '<a href="' + auditUrl + '" target="_blank" rel="noopener" class="action-link" style="color:var(--blue-main)">📋 Audit ADEME</a>';
+    if (dpeUrl)   links += '<a href="' + dpeUrl + '" target="_blank" rel="noopener" class="action-link" style="color:var(--blue-main)">🏛 DPE associé</a>';
+    if (cadastre) links += '<a href="' + cadastre + '" target="_blank" rel="noopener" class="action-link" style="color:var(--yellow)">📐 Parcelle IGN/Cadastre</a>';
+    if (rnbId)    links += '<span class="action-link" title="ID RNB exposé par ADEME — lien direct désactivé car /batiment/<id> peut renvoyer 404" style="color:var(--blue-main);cursor:default">🏗 ID RNB ' + esc(rnbId) + '</span>';
     links += '</div>';
     return links;
   }
@@ -136,12 +136,12 @@
     const label = step.label || step.etape_travaux || ('Étape ' + (i + 1));
     const isInitial = step.role === 'initial';
     const isFinal = step.role === 'final';
-    const accent = isInitial ? 'var(--muted)' : (isFinal ? 'var(--accent)' : 'var(--accent2)');
+    const accent = isInitial ? 'var(--muted)' : (isFinal ? 'var(--blue-main)' : 'var(--blue-light)');
     const isSynthetic = r._synthetic === true;
 
     return '<div class="reno-card">'
       + '<div class="reno-card-head">'
-        + '<div class="scenario-num" style="background:rgba(74,222,128,.12);color:' + accent + '">' + (i + 1) + '</div>'
+        + '<div class="scenario-num" style="background:var(--blue-pale);color:' + accent + '">' + (i + 1) + '</div>'
         + '<div style="flex:1;min-width:0">'
           + '<div style="font-size:13px;font-weight:700;color:var(--text)">' + esc(label) + (isSynthetic && !isInitial ? ' <span style="font-size:10px;color:var(--muted);font-family:var(--mono);font-weight:400">(estimation)</span>' : '') + '</div>'
           + '<div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px">' + esc(step.categorie_scenario || 'scénario') + '</div>'
@@ -150,13 +150,13 @@
       + '</div>'
       + '<div class="reno-card-body">'
         + '<div style="font-size:12px;color:var(--text);line-height:1.6;margin-bottom:10px">' + (isInitial ? (isSynthetic ? '<span style="color:var(--muted)">État initial — valeurs reconstituées depuis les gains cumulés</span>' : '<span style="color:var(--muted)">État initial avant travaux</span>') : renderTravauxList(step.travaux)) + '</div>'
-        + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">'
-          + '<div class="kpi-box"><div class="v" style="color:#22d3ee">' + fmtN(step.conso_5_usages_m2, ' kWh/m²') + '</div><div class="l">Conso EF</div></div>'
-          + '<div class="kpi-box"><div class="v" style="color:#f87171">' + fmtN(step.emission_ges_5_usages_m2, ' kgCO₂/m²') + '</div><div class="l">GES</div></div>'
-          + '<div class="kpi-box"><div class="v" style="color:#f59e0b">' + fmtN(step.cout_travaux, ' €') + '</div><div class="l">Coût étape</div></div>'
-          + '<div class="kpi-box"><div class="v" style="color:var(--accent)">' + fmtN(step.couts_cumules_travaux, ' €') + '</div><div class="l">Coût cumulé</div></div>'
+        + '<div class="step-kpi-grid">'
+          + '<div class="kpi-box"><div class="v" style="color:var(--blue-light)">' + fmtN(step.conso_5_usages_m2, ' kWh/m²') + '</div><div class="l">Conso EF</div></div>'
+          + '<div class="kpi-box"><div class="v" style="color:var(--danger)">' + fmtN(step.emission_ges_5_usages_m2, ' kgCO₂/m²') + '</div><div class="l">GES</div></div>'
+          + '<div class="kpi-box"><div class="v" style="color:var(--yellow)">' + fmtN(step.cout_travaux, ' €') + '</div><div class="l">Coût étape</div></div>'
+          + '<div class="kpi-box"><div class="v" style="color:var(--blue-main)">' + fmtN(step.couts_cumules_travaux, ' €') + '</div><div class="l">Coût cumulé</div></div>'
         + '</div>'
-        + (!isInitial ? '<div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:10px">Gain cumulé EF : <span style="color:var(--accent)">' + pctFromRatio(r.gains_relatifs_cumules_conso_5_usages_m2_ef ?? r.gain_relatif_conso_5_usages_m2_ef) + '</span> · Gain GES : <span style="color:var(--accent)">' + pctFromRatio(r.gains_relatifs_cumules_emission_ges_5_usages_m2 ?? r.gain_relatif_emission_ges_5_usages_m2) + '</span></div>' : '')
+        + (!isInitial ? '<div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:10px">Gain cumulé EF : <span style="color:var(--blue-main)">' + pctFromRatio(r.gains_relatifs_cumules_conso_5_usages_m2_ef ?? r.gain_relatif_conso_5_usages_m2_ef) + '</span> · Gain GES : <span style="color:var(--blue-main)">' + pctFromRatio(r.gains_relatifs_cumules_emission_ges_5_usages_m2 ?? r.gain_relatif_emission_ges_5_usages_m2) + '</span></div>' : '')
       + '</div>'
     + '</div>';
   }
@@ -194,7 +194,7 @@
           + '<div style="font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:2px">' + esc(fmt(audit.code_postal_ban)) + ' ' + esc(fmt(audit.nom_commune_ban)) + '</div>'
           + '<div style="font-family:var(--mono);font-size:11px;color:var(--muted)">' + esc(fmt(audit.method)) + '</div>'
         + '</div>'
-        + '<div class="audit-hero-meta" style="text-align:right;min-width:0;flex-shrink:0">'
+        + '<div class="audit-hero-meta" style="text-align:right;min-width:140px;flex-shrink:0">'
           + '<div style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-bottom:4px">N° AUDIT</div>'
           + '<div style="font-size:12px;font-weight:600;color:var(--blue-main);font-family:var(--mono);word-break:break-all">' + esc(fmt(audit.n_audit)) + '</div>'
           + '<div style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:8px">DPE associé</div>'
@@ -207,12 +207,12 @@
     + '</div>';
 
     html += '<div class="audit-kpi-grid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px">'
-      + metricBox(fmtN(initial.conso_5_usages_m2, ' kWh'), 'Conso initiale / m²', '#f59e0b')
-      + metricBox(fmtN(final.conso_5_usages_m2, ' kWh'), 'Conso finale / m²', 'var(--accent)')
-      + metricBox(pctFromGain(gainEf), 'Gain énergie', 'var(--accent2)')
-      + metricBox(fmtN(initial.emission_ges_5_usages_m2, ' kg'), 'GES initial / m²', '#f87171')
-      + metricBox(fmtN(final.emission_ges_5_usages_m2, ' kg'), 'GES final / m²', 'var(--accent)')
-      + metricBox(fmtN(finalCost, ' €'), 'Coût travaux cumulé', '#f59e0b')
+      + metricBox(fmtN(initial.conso_5_usages_m2, ' kWh'), 'Conso initiale / m²', 'var(--yellow)')
+      + metricBox(fmtN(final.conso_5_usages_m2, ' kWh'), 'Conso finale / m²', 'var(--blue-main)')
+      + metricBox(pctFromGain(gainEf), 'Gain énergie', 'var(--blue-light)')
+      + metricBox(fmtN(initial.emission_ges_5_usages_m2, ' kg'), 'GES initial / m²', 'var(--danger)')
+      + metricBox(fmtN(final.emission_ges_5_usages_m2, ' kg'), 'GES final / m²', 'var(--blue-main)')
+      + metricBox(fmtN(finalCost, ' €'), 'Coût travaux cumulé', 'var(--yellow)')
     + '</div>';
 
     html += '<details open class="expert-only expert-details expert-section" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden"><summary style="padding:14px 18px;cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono)">Détails techniques de l’audit</summary><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px" class="audit-detail-grid">'
@@ -232,7 +232,7 @@
           kv('Méthode', esc(fmt(audit.method))),
           kv('Date audit', esc(fmt(audit.date_etablissement_audit)))
         ])
-      + block('🧱 Enveloppe finale', '#2a4a1a', [
+      + block('🧱 Enveloppe finale', '#1a4a1a', [
           kv('Murs', esc(fmt(final.qualite_isolation_murs))),
           kv('Menuiseries', esc(fmt(final.qualite_isolation_menuiseries))),
           kv('Plancher bas', esc(fmt(final.qualite_isolation_plancher_bas))),

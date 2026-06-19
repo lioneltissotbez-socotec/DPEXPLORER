@@ -997,30 +997,33 @@ function openDpeFromMapB64(b64) {
 function buildMixedMapPopup(rows) {
   const nbDpe = rows.filter(x => x._kind !== 'audit').length;
   const nbAudit = rows.filter(x => x._kind === 'audit').length;
-  let html = '<div style="min-width:250px">';
-  html += '<div style="font-weight:700;color:#22d3ee;margin-bottom:6px">' + nbDpe + ' DPE · ' + nbAudit + ' audit(s) à cette position</div>';
+  let html = '<div style="min-width:260px;max-width:360px">';
+  html += '<div style="font-weight:700;color:var(--blue-main);margin-bottom:8px;font-size:13px">' + nbDpe + ' DPE · ' + nbAudit + ' audit(s) à cette position</div>';
+  // Conteneur scrollable si liste longue
+  html += '<div style="max-height:320px;overflow-y:auto;overflow-x:hidden;padding-right:4px">';
   rows.forEach(item => {
-    html += '<div style="border-top:1px solid rgba(255,255,255,.12);padding-top:6px;margin-top:6px">';
+    html += '<div style="border-top:1px solid var(--border);padding-top:8px;margin-top:8px">';
     if (item._kind === 'audit') {
       const b64 = encodeObjForHtml(item);
       const before = item.initial?.classe_bilan_dpe || '?';
       const after = item.final?.classe_bilan_dpe || '?';
       const cost = item.final?.couts_cumules_travaux || item.final?.cout_travaux;
-      html += '<strong style="color:#a78bfa">Audit ' + before + ' → ' + after + '</strong> · ' + (item.date_etablissement_audit || 'date ?') + '<br>';
+      html += '<strong style="color:#6B3FA0">Audit ' + before + ' → ' + after + '</strong> · ' + (item.date_etablissement_audit || 'date ?') + '<br>';
       html += (item.surface_habitable_logement ? item.surface_habitable_logement + ' m² · ' : '') + (cost ? Math.round(cost).toLocaleString('fr-FR') + ' € travaux<br>' : '');
-      html += '<span style="color:#94a3b8">' + (item.address || '') + '</span><br>';
-      html += '<span style="color:#94a3b8">Distance : ' + Math.round(item._distance_m || 0) + ' m · N° ' + (item.n_audit || '') + '</span>';
+      html += '<span style="color:var(--text-sec);font-size:11px">' + (item.address || '') + '</span><br>';
+      html += '<span style="color:var(--muted);font-size:11px">Distance : ' + Math.round(item._distance_m || 0) + ' m · N° ' + (item.n_audit || '') + '</span>';
       html += '<button class="map-popup-btn audit" onclick="loadAuditFromMapB64(\'' + b64 + '\')">🔎 Ouvrir la fiche audit</button>';
     } else {
       const b64 = encodeObjForHtml(item);
-      html += '<strong>DPE ' + (item.etiquette_dpe || '?') + '</strong> · GES ' + (item.etiquette_ges || '?') + ' · ' + (item.date_etablissement_dpe || 'date ?') + '<br>';
+      html += '<strong style="color:var(--blue-dark)">DPE ' + (item.etiquette_dpe || '?') + '</strong> · GES ' + (item.etiquette_ges || '?') + ' · ' + (item.date_etablissement_dpe || 'date ?') + '<br>';
       html += (item.surface_habitable_logement ? item.surface_habitable_logement + ' m² · ' : '') + (item.type_batiment || '') + '<br>';
-      html += '<span style="color:#94a3b8">' + (item.adresse_ban || item.adresse_complete_brut || item.adresse_brut || '') + '</span><br>';
-      html += '<span style="color:#94a3b8">Distance : ' + Math.round(item._distance_m || 0) + ' m · N° ' + (item.numero_dpe || '') + '</span>';
+      html += '<span style="color:var(--text-sec);font-size:11px">' + (item.adresse_ban || item.adresse_complete_brut || item.adresse_brut || '') + '</span><br>';
+      html += '<span style="color:var(--muted);font-size:11px">Distance : ' + Math.round(item._distance_m || 0) + ' m · N° ' + (item.numero_dpe || '') + '</span>';
       html += '<button class="map-popup-btn" onclick="openDpeFromMapB64(\'' + b64 + '\')">🔍 Ouvrir la fiche DPE</button>';
     }
     html += '</div>';
   });
+  html += '</div>'; // fin scroll
   html += '</div>';
   return html;
 }
@@ -1081,19 +1084,37 @@ function renderMixedNearbyResults(dpes, audits, center, radius, fullAddress, siz
 function loadAuditFromMapB64(b64) {
   try {
     const json = decodeURIComponent(escape(atob(b64)));
-    const audit = JSON.parse(json);
+    const auditData = JSON.parse(json);
+    const nAudit = auditData.n_audit || '';
+
+    // Basculer sur le panel audit
     if (typeof activatePanel === 'function') activatePanel('audit');
     else {
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
       document.getElementById('panel-audit')?.classList.add('active');
     }
+
+    // Remplir le champ numéro d'audit
     const inp = document.getElementById('inp-audit');
     const url = document.getElementById('url-audit');
-    const result = document.getElementById('result-audit');
-    if (inp) inp.value = audit.n_audit || '';
-    if (url) url.innerHTML = 'GET &nbsp;<span>Chargé depuis la carte proximité</span>';
-    if (result) result.innerHTML = typeof renderAudit === 'function' ? renderAudit(audit) : '<div class="card">Audit chargé.</div>';
+    if (inp) inp.value = nAudit;
+    if (url) url.innerHTML = 'GET &nbsp;<span>Recherche complète N° ' + nAudit + '…</span>';
     window.scrollTo(0, 0);
+
+    // Lancer la recherche complète (size:50, toutes les étapes)
+    // evite les données partielles de la carte (1 seule ligne)
+    if (nAudit && typeof window.searchAuditByNumber === 'function') {
+      window.searchAuditByNumber();
+    } else {
+      // Fallback : affichage direct depuis le JSON partiel de la carte
+      const result = document.getElementById('result-audit');
+      const normalized = typeof window.normalizeAuditRows === 'function'
+        ? window.normalizeAuditRows([auditData])
+        : auditData;
+      if (result) result.innerHTML = typeof renderAudit === 'function'
+        ? renderAudit(normalized)
+        : '<div class="card">Audit chargé.</div>';
+    }
   } catch(e) {
     console.error('Erreur chargement audit depuis carte:', e);
   }

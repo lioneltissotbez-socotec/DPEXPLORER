@@ -944,51 +944,55 @@ body[data-ui-mode="user"] .main { max-width: 1180px; }
   #ademe-list-block { display: none !important; }
 }
 
-/* ── ANTI SCROLL HORIZONTAL GLOBAL ──────────────────────────── */
-/* Les grilles multi-colonnes générées en inline par render-dpe.js
-   causent un débordement horizontal sur mobile.
-   On les contraint à s'adapter en une ou deux colonnes. */
+
+/* ── ANTI SCROLL HORIZONTAL — CIBLÉ PAR CONTEXTE ────────────── */
+/* IMPORTANT : les sélecteurs [style*=...] avec !important écrasent
+   toutes les classes CSS. On les restreint aux seuls contextes où
+   ils sont nécessaires (render-dpe.js uniquement via #result-search
+   et #result-addr). #result-audit est géré par ses propres classes. */
 @media (max-width: 768px) {
   /* Conteneur global sans débordement */
-  body, .main, .panel, #result-search, #result-audit, #result-addr {
-    overflow-x: hidden;
-    max-width: 100vw;
-  }
+  body, .main, .panel { overflow-x: hidden; max-width: 100vw; }
+  #result-search, #result-addr { overflow-x: hidden; }
 
-  /* Toutes les grilles inline repeat(N, 1fr) → 1 ou 2 colonnes selon N */
-  [style*="grid-template-columns:repeat(6"],
-  [style*="grid-template-columns:repeat(5"],
-  [style*="grid-template-columns:repeat(4"],
-  [style*="grid-template-columns:repeat(3"] {
+  /* Grilles inline de render-dpe.js — ciblées uniquement dans DPE/adresse */
+  #result-search [style*="grid-template-columns:repeat(6"],
+  #result-search [style*="grid-template-columns:repeat(5"],
+  #result-search [style*="grid-template-columns:repeat(4"],
+  #result-search [style*="grid-template-columns:repeat(3"],
+  #result-addr   [style*="grid-template-columns:repeat(6"],
+  #result-addr   [style*="grid-template-columns:repeat(5"],
+  #result-addr   [style*="grid-template-columns:repeat(4"],
+  #result-addr   [style*="grid-template-columns:repeat(3"] {
     grid-template-columns: 1fr 1fr !important;
   }
-  [style*="grid-template-columns:repeat(7"] {
+  #result-search [style*="grid-template-columns:repeat(7"],
+  #result-addr   [style*="grid-template-columns:repeat(7"] {
     grid-template-columns: repeat(4, 1fr) !important;
   }
 
-  /* Flex row avec min-width → on permet le wrap */
-  [style*="display:flex"] {
+  /* Flex wrap uniquement dans les fiches DPE (pas audit) */
+  #result-search [style*="display:flex"],
+  #result-addr   [style*="display:flex"] {
     flex-wrap: wrap !important;
   }
-  [style*="min-width:180px"],
-  [style*="min-width:220px"],
-  [style*="min-width:280px"],
-  [style*="min-width:300px"] {
-    min-width: 0 !important;
-    width: 100% !important;
+  #result-search [style*="min-width:180px"],
+  #result-search [style*="min-width:220px"],
+  #result-search [style*="min-width:280px"],
+  #result-addr   [style*="min-width:180px"],
+  #result-addr   [style*="min-width:220px"],
+  #result-addr   [style*="min-width:280px"] {
+    min-width: 0 !important; width: 100% !important;
   }
 
-  /* white-space:nowrap dans les td : on autorise le retour à la ligne */
   td { white-space: normal !important; word-break: break-word; }
-
-  /* Cartes et panneaux : pas de padding latéral excessif */
   .card { padding: 14px 14px; }
   .user-dpe-card { padding: 14px; }
-  .user-kpi-grid { grid-template-columns: 1fr 1fr !important; }
+  .user-kpi-grid  { grid-template-columns: 1fr 1fr !important; }
   .user-info-grid { grid-template-columns: 1fr !important; }
   .user-isolation-grid { grid-template-columns: 1fr !important; }
-  .user-points-grid { grid-template-columns: 1fr !important; }
-  .user-hero { flex-direction: column !important; }
+  .user-points-grid    { grid-template-columns: 1fr !important; }
+  .user-hero  { flex-direction: column !important; }
   .user-links { flex-wrap: wrap !important; }
 }
 
@@ -1361,43 +1365,87 @@ body[data-ui-mode="user"] .main { max-width: 1180px; }
 }
 
 /* ── HERO FICHE AUDIT — LAYOUT MOBILE ───────────────────────── */
-/* Sur mobile : badges en haut, adresse en dessous, méta en dessous */
 @media (max-width: 600px) {
   .audit-hero {
     flex-direction: column !important;
     gap: 12px !important;
   }
-  .audit-hero-badges {
-    flex-shrink: 0;
-    width: 100%;
-  }
-  .audit-hero-addr {
-    width: 100%;
-    min-width: 0 !important;
-  }
+  .audit-hero-badges { width: 100%; flex-shrink: 0; }
+  .audit-hero-addr   { width: 100%; min-width: 0 !important; }
+
+  /* Meta : grille label|valeur alignée, fond clair pour la distinguer */
   .audit-hero-meta {
-    width: 100%;
-    text-align: left !important;
+    width: 100% !important;
     min-width: 0 !important;
+    text-align: left !important;
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: var(--r2);
-    padding: 12px 14px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px 16px;
+    padding: 10px 12px;
+    display: grid !important;
+    grid-template-columns: max-content 1fr !important;
+    gap: 0 12px !important;
+    align-items: baseline;
   }
-  /* Les paires label/valeur dans la méta s'affichent côte à côte */
-  .audit-hero-meta [style*="font-size:10px"] {
+  /* Labels (divs impairs : N° AUDIT, DPE ASSOCIÉ, VALIDE JUSQU'AU) */
+  .audit-hero-meta > div:nth-child(odd) {
     font-size: 10px !important;
     color: var(--muted) !important;
-    margin-top: 0 !important;
-    margin-bottom: 2px !important;
+    font-family: var(--mono) !important;
+    text-transform: uppercase !important;
+    letter-spacing: .06em !important;
+    padding: 5px 0 !important;
+    margin: 0 !important;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
   }
-  .audit-hero-meta [style*="font-size:12px"] {
-    font-size: 13px !important;
-    margin-bottom: 8px;
+  /* Valeurs (divs pairs) */
+  .audit-hero-meta > div:nth-child(even) {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    font-family: var(--mono) !important;
+    color: var(--text) !important;
+    padding: 5px 0 !important;
+    word-break: break-all;
+    border-bottom: 1px solid var(--border);
   }
+  /* Retirer la bordure du dernier pair */
+  .audit-hero-meta > div:nth-last-child(1),
+  .audit-hero-meta > div:nth-last-child(2) {
+    border-bottom: none !important;
+  }
+}
+
+/* ── AUDIT KV — GRILLE LABEL/VALEUR DANS LES BLOCS DÉTAILS ──── */
+/* audit-kv-grid est la div de grille dans block() */
+.audit-kv-grid {
+  display: grid !important;
+  grid-template-columns: max-content 1fr !important;
+  padding: 0 !important;
+}
+.audit-kv-key {
+  color: var(--text-sec) !important;
+  font-size: 11px !important;
+  font-family: var(--mono) !important;
+  padding: 7px 10px 7px 14px !important;
+  border-bottom: 1px solid var(--border) !important;
+  white-space: nowrap;
+  background: var(--surface2);
+}
+.audit-kv-val {
+  color: var(--text) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: 7px 14px 7px 10px !important;
+  border-bottom: 1px solid var(--border) !important;
+  word-break: break-word;
+  min-width: 0;
+  background: var(--white);
+}
+/* Sur mobile la grille peut passer en % si max-content déborde */
+@media (max-width: 480px) {
+  .audit-kv-grid { grid-template-columns: 40% 60% !important; }
+  .audit-kv-key  { white-space: normal !important; font-size: 10px !important; }
 }
 
 /* ── STATUS SOUS BOUTON : PLUS VISIBLE ──────────────────────── */
@@ -1614,5 +1662,343 @@ body[data-ui-mode="user"] .main { max-width: 1180px; }
 @media (max-width: 768px) {
   .reno-card-body [style*="grid-template-columns:repeat(4,1fr)"] {
     grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+/* ── AUDIT KV — LISIBILITÉ THÈME CLAIR ──────────────────────── */
+/* Les kv() de render-audit.js utilisent display:contents.
+   Les classes audit-kv-key / audit-kv-val permettent de les cibler. */
+.audit-kv-key {
+  color: var(--text-sec) !important;
+  font-size: 11px !important;
+  font-family: var(--mono) !important;
+  background: transparent !important;
+}
+.audit-kv-val {
+  color: var(--text) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  background: transparent !important;
+  word-break: break-word;
+}
+
+/* Header des blocs audit (fond bleu foncé + texte blanc) */
+.audit-block > div:first-child {
+  color: rgba(255,255,255,.95) !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  padding: 9px 14px !important;
+  letter-spacing: .1em !important;
+}
+
+/* Grille kv à l'intérieur d'un bloc */
+.audit-block > div:last-child {
+  display: grid !important;
+  grid-template-columns: max-content 1fr !important;
+  gap: 0 !important;
+}
+
+/* ── POPUP LEAFLET SCROLLABLE ────────────────────────────────── */
+/* Leaflet encapsule le contenu dans .leaflet-popup-content.
+   On y autorise le scroll vertical et on fixe une hauteur max. */
+.leaflet-popup-content {
+  overflow: visible !important; /* le scroll est géré par le div interne */
+  max-height: none !important;
+}
+/* Le div interne scrollable généré par buildMixedMapPopup */
+.leaflet-popup-content > div > div[style*="max-height:320px"] {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+.leaflet-popup-content > div > div[style*="max-height:320px"]::-webkit-scrollbar {
+  width: 4px;
+}
+.leaflet-popup-content > div > div[style*="max-height:320px"]::-webkit-scrollbar-thumb {
+  background: var(--border2);
+  border-radius: 2px;
+}
+
+/* Taille max de la popup Leaflet elle-même */
+.leaflet-popup-content-wrapper {
+  max-height: 420px !important;
+  overflow: visible !important;
+}
+
+/* Couleurs popup → thème clair */
+.leaflet-popup-content strong { color: var(--text) !important; }
+
+
+/* ── GRILLE KPI D'ÉTAPE AUDIT ────────────────────────────────── */
+/* Pas de style inline dans le JS : le CSS contrôle tout */
+.step-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+.step-kpi-grid .kpi-box {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: none;
+  min-width: 0;
+  overflow: hidden;
+}
+.step-kpi-grid .kpi-box .v {
+  font-size: 18px;
+  font-weight: 800;
+  font-family: var(--font);
+  line-height: 1;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.step-kpi-grid .kpi-box .l {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-top: 3px;
+  font-family: var(--mono);
+}
+
+@media (max-width: 900px) {
+  .step-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 768px) {
+  .step-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .step-kpi-grid .kpi-box {
+    padding: 10px 12px !important;
+  }
+  .step-kpi-grid .kpi-box .v {
+    font-size: 16px !important;
+  }
+  .step-kpi-grid .kpi-box .l {
+    font-size: 9px !important;
+  }
+  .reno-card-body > div:first-child {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FICHE AUDIT AVANCÉE — RESPONSIVE MOBILE COMPLET
+   Toutes les règles sont scoped dans #result-audit pour ne pas
+   interférer avec le reste de l'application.
+══════════════════════════════════════════════════════════════ */
+
+/* ── HERO ────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  #result-audit .audit-hero {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  #result-audit .audit-hero-badges {
+    width: 100%;
+    flex-shrink: 0;
+  }
+  #result-audit .audit-hero-addr {
+    width: 100%;
+    min-width: 0 !important;
+  }
+  #result-audit .audit-hero-meta {
+    width: 100% !important;
+    min-width: 0 !important;
+    text-align: left !important;
+    display: grid !important;
+    grid-template-columns: max-content 1fr !important;
+    gap: 0 !important;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    padding: 10px 12px !important;
+  }
+  #result-audit .audit-hero-meta > div:nth-child(odd) {
+    font-size: 10px !important;
+    color: var(--muted) !important;
+    font-family: var(--mono) !important;
+    text-transform: uppercase !important;
+    letter-spacing: .06em !important;
+    padding: 5px 8px 5px 0 !important;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    margin: 0 !important;
+  }
+  #result-audit .audit-hero-meta > div:nth-child(even) {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    font-family: var(--mono) !important;
+    color: var(--text) !important;
+    padding: 5px 0 5px 8px !important;
+    border-bottom: 1px solid var(--border);
+    word-break: break-all;
+  }
+  #result-audit .audit-hero-meta > div:nth-last-child(1),
+  #result-audit .audit-hero-meta > div:nth-last-child(2) {
+    border-bottom: none !important;
+  }
+  /* Liens externes : wrap */
+  #result-audit .audit-links {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+}
+
+/* ── KPI RÉCAP (6 boîtes) ────────────────────────────────────── */
+#result-audit .audit-kpi-grid {
+  display: grid !important;
+  grid-template-columns: repeat(6, 1fr) !important;
+  gap: 10px;
+}
+@media (max-width: 1100px) {
+  #result-audit .audit-kpi-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+@media (max-width: 768px) {
+  #result-audit .audit-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px;
+  }
+  #result-audit .audit-kpi-grid > div {
+    padding: 12px !important;
+  }
+  #result-audit .audit-kpi-grid [style*="font-size:24px"] {
+    font-size: 18px !important;
+  }
+}
+
+/* ── DÉTAILS TECHNIQUES (3 blocs) ───────────────────────────── */
+#result-audit .audit-detail-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 12px;
+  padding: 16px;
+}
+@media (max-width: 900px) {
+  #result-audit .audit-detail-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+@media (max-width: 640px) {
+  #result-audit .audit-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── KV ROWS DANS BLOCS DÉTAILS ──────────────────────────────── */
+#result-audit .audit-kv-grid {
+  display: grid !important;
+  grid-template-columns: max-content 1fr !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+#result-audit .audit-kv-key {
+  color: var(--text-sec) !important;
+  font-size: 11px !important;
+  font-family: var(--mono) !important;
+  padding: 7px 10px 7px 12px !important;
+  border-bottom: 1px solid var(--border) !important;
+  white-space: nowrap;
+  background: var(--surface2);
+}
+#result-audit .audit-kv-val {
+  color: var(--text) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: 7px 12px 7px 10px !important;
+  border-bottom: 1px solid var(--border) !important;
+  word-break: break-word;
+  min-width: 0;
+  background: var(--white);
+}
+@media (max-width: 480px) {
+  #result-audit .audit-kv-grid {
+    grid-template-columns: 42% 58% !important;
+  }
+  #result-audit .audit-kv-key {
+    white-space: normal !important;
+    font-size: 10px !important;
+  }
+  #result-audit .audit-kv-val {
+    font-size: 12px !important;
+  }
+}
+
+/* ── ÉTAPES DE RÉNOVATION ─────────────────────────────────────── */
+#result-audit .step-kpi-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 8px !important;
+  width: 100%;
+}
+#result-audit .step-kpi-grid .kpi-box {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: none;
+  min-width: 0;
+  overflow: hidden;
+}
+#result-audit .step-kpi-grid .kpi-box .v {
+  font-size: 18px;
+  font-weight: 800;
+  font-family: var(--font);
+  line-height: 1;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#result-audit .step-kpi-grid .kpi-box .l {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-family: var(--mono);
+}
+@media (max-width: 900px) {
+  #result-audit .step-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+@media (max-width: 768px) {
+  #result-audit .step-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  #result-audit .step-kpi-grid .kpi-box {
+    padding: 10px 10px !important;
+  }
+  #result-audit .step-kpi-grid .kpi-box .v {
+    font-size: 15px !important;
+  }
+  #result-audit .step-kpi-grid .kpi-box .l {
+    font-size: 9px !important;
+  }
+  /* Tête d'étape : badges à droite avec wrap */
+  #result-audit .reno-card-head {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  /* Texte travaux : word wrap */
+  #result-audit .reno-card-body > div:first-child {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+}
+
+/* ── JSON BRUT ───────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  #result-audit .raw {
+    font-size: 10px !important;
+    max-height: 200px !important;
   }
 }
