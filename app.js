@@ -1800,7 +1800,7 @@ window.toggleXray     = toggleXray;
 
         // 1. Forcer le rayon à 500 m dans le sélecteur UI
         const radiusSelect = document.getElementById('f-map-radius');
-        if (radiusSelect) radiusSelect.value = '500';
+        if (radiusSelect) radiusSelect.value = '50';
 
         // 2. S'assurer que DPE et Audits sont cochés
         const cbDpe = document.getElementById('f-map-dpe');

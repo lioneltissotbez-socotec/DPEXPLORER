@@ -79,7 +79,104 @@
     const safeRows = (rows || []).filter(Boolean);
     if (!safeRows.length) return null;
 
-    const sortedRows = safeRows.slice().sort((a, b) => stepRank(a, safeRows.indexOf(a)) - stepRank(b, safeRows.indexOf(b)));
+    // ── Cas fréquent : chargé depuis la carte, une seule ligne (étape finale) ──
+    // L'API retourne une ligne par étape. Si on n'en a qu'une et qu'elle n'est
+    // pas l'état initial, on reconstitue l'état initial depuis les champs
+    // gains_cumules_* présents dans la même ligne.
+    let workingRows = safeRows.slice();
+    const hasInitial = workingRows.some(r => {
+      const e = normText(r.etape_travaux || '');
+      const c = normText(r.categorie_scenario || '');
+      return e.includes('etat initial') || c === 'etat initial';
+    });
+
+    if (!hasInitial && workingRows.length < 3) {
+      // Prendre la ligne avec le plus grand couts_cumules_travaux comme référence finale
+      const refRow = workingRows.slice().sort((a, b) =>
+        (asNumber(b.couts_cumules_travaux) || 0) - (asNumber(a.couts_cumules_travaux) || 0)
+      )[0];
+
+      const efFinal  = asNumber(refRow.conso_5_usages_m2);
+      const epFinal  = asNumber(refRow.ep_conso_5_usages_m2);
+      const gesFinal = asNumber(refRow.emission_ges_5_usages_m2);
+      const gainEf   = asNumber(refRow.gains_cumules_conso_5_usages_m2_ef);
+      const gainEp   = asNumber(refRow.gains_cumules_conso_5_usages_m2_ep);
+      const gainGes  = asNumber(refRow.gains_cumules_emission_ges_5_usages_m2);
+      const coutCum  = asNumber(refRow.couts_cumules_travaux);
+      const coutFin  = asNumber(refRow.cout_travaux);
+
+      const efInitial  = (efFinal  !== null && gainEf  !== null) ? efFinal  - gainEf  : null;
+      const epInitial  = (epFinal  !== null && gainEp  !== null) ? epFinal  - gainEp  : null;
+      const gesInitial = (gesFinal !== null && gainGes !== null) ? gesFinal - gainGes : null;
+
+      // Étiquette initiale : déduire depuis la conso EP initiale reconstituée
+      function epToClasse(ep) {
+        if (ep === null) return '';
+        if (ep < 70)  return 'A';
+        if (ep < 110) return 'B';
+        if (ep < 180) return 'C';
+        if (ep < 250) return 'D';
+        if (ep < 330) return 'E';
+        if (ep < 420) return 'F';
+        return 'G';
+      }
+
+      // Construire la ligne synthétique de l'état initial
+      const initialRow = Object.assign({}, refRow, {
+        etape_travaux: 'État initial',
+        categorie_scenario: 'etat initial',
+        travaux_realises: '',
+        conso_5_usages_m2:    Math.round(efInitial),
+        ep_conso_5_usages_m2: Math.round(epInitial),
+        emission_ges_5_usages_m2: gesInitial !== null ? Math.round(gesInitial) : null,
+        classe_bilan_dpe: epToClasse(epInitial),
+        etiquette_ges:    epToClasse(epInitial), // approximation
+        cout_travaux: 0,
+        couts_cumules_travaux: 0,
+        gains_relatifs_cumules_conso_5_usages_m2_ef: 0,
+        gains_relatifs_cumules_conso_5_usages_m2_ep: 0,
+        gains_relatifs_cumules_emission_ges_5_usages_m2: 0,
+        gains_cumules_conso_5_usages_m2_ef: 0,
+        gains_cumules_conso_5_usages_m2_ep: 0,
+        gains_cumules_emission_ges_5_usages_m2: 0,
+        id_etape: 'initial-synthetic',
+        _synthetic: true
+      });
+
+      // Si on a exactement 1 ligne finale et un coût cumulé > coût étape :
+      // il y avait une étape intermédiaire — on la reconstitue aussi
+      if (workingRows.length === 1 && coutCum !== null && coutFin !== null && coutCum > coutFin) {
+        const coutEtape1 = coutCum - coutFin;
+        // Conso intermédiaire : gain proportionnel (estimation linéaire)
+        const efEtape1  = efInitial  !== null ? efInitial  + (efFinal  - efInitial)  * (coutEtape1 / coutCum) : null;
+        const epEtape1  = epInitial  !== null ? epInitial  + (epFinal  - epInitial)  * (coutEtape1 / coutCum) : null;
+        const gesEtape1 = gesInitial !== null ? gesInitial + (gesFinal - gesInitial) * (coutEtape1 / coutCum) : null;
+
+        const etape1Row = Object.assign({}, refRow, {
+          etape_travaux: 'étape première',
+          travaux_realises: [
+            refRow.travaux_realises || '',
+            // Inverser : les travaux de l'étape finale ne sont pas dans l'étape 1
+          ].join(''),
+          conso_5_usages_m2:    efEtape1  !== null ? Math.round(efEtape1)  : null,
+          ep_conso_5_usages_m2: epEtape1  !== null ? Math.round(epEtape1)  : null,
+          emission_ges_5_usages_m2: gesEtape1 !== null ? Math.round(gesEtape1) : null,
+          classe_bilan_dpe: epToClasse(epEtape1),
+          etiquette_ges:    epToClasse(gesEtape1),
+          cout_travaux: coutEtape1,
+          couts_cumules_travaux: coutEtape1,
+          id_etape: 'step1-synthetic',
+          _synthetic: true
+        });
+        workingRows = [initialRow, etape1Row, ...workingRows];
+      } else {
+        workingRows = [initialRow, ...workingRows];
+      }
+    }
+
+    const sortedRows = workingRows.slice().sort((a, b) =>
+      stepRank(a, workingRows.indexOf(a)) - stepRank(b, workingRows.indexOf(b))
+    );
     const steps = sortedRows.map((row, index) => normalizeAuditRow(row, index));
     const initial = steps.find(s => s.role === 'initial') || steps[0] || null;
     const final = [...steps].reverse().find(s => s.role === 'final') || steps[steps.length - 1] || initial;

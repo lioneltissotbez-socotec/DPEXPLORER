@@ -1424,3 +1424,195 @@ body[data-ui-mode="user"] .main { max-width: 1180px; }
   animation: spin 1s linear infinite;
   margin-right: 4px;
 }
+
+/* ── FORMULAIRE ADRESSE — DESKTOP ────────────────────────────── */
+.addr-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.addr-form-row1 { display: flex; gap: 10px; }
+.addr-form-row1 .addr-num  { flex: 0 0 90px; }
+.addr-form-row1 .addr-rue  { flex: 1; }
+.addr-form-row2 { display: flex; gap: 10px; align-items: flex-end; }
+.addr-form-row2 .addr-ville { flex: 1; }
+.addr-form-row2 .addr-size  { flex: 0 0 90px; }
+.addr-btn { flex-shrink: 0; }
+
+/* ── FILTRES DE BASE CARTE ───────────────────────────────────── */
+
+/* Version PC : toujours visible en desktop, cachée sur mobile */
+.map-filters-pc  { display: flex; }
+.map-filters-mobile { display: none; } /* caché sur desktop */
+
+/* ── MOBILE ≤ 768px ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Formulaire : compacter en 2 lignes */
+  .addr-form-row1 { gap: 8px; }
+  .addr-form-row1 .addr-num { flex: 0 0 72px; }
+  .addr-form-row2 { flex-wrap: wrap; gap: 8px; }
+  .addr-form-row2 .addr-ville { flex: 1 1 100%; min-width: 0; }
+  .addr-form-row2 .addr-size  { display: none; } /* masqué, géré par pc-only-block */
+  .addr-btn { width: 100%; justify-content: center; }
+
+  /* Cacher la version PC des filtres */
+  .map-filters-pc { display: none !important; }
+
+  /* Afficher la barre mobile compacte */
+  .map-filters-mobile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Coches DPE / Audits */
+  .mf-check {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    font-family: var(--font);
+    white-space: nowrap;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .mf-check input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--blue-main);
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  /* Séparateur vertical */
+  .mf-sep {
+    color: var(--border2);
+    font-size: 18px;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  /* Select rayon inline */
+  .mf-select {
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font);
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 6px;
+    background: var(--surface2);
+    color: var(--text);
+    cursor: pointer;
+    flex-shrink: 0;
+    max-width: 80px;
+  }
+
+  /* Bouton → compact */
+  .mf-search-btn {
+    margin-left: auto;
+    flex-shrink: 0;
+    background: var(--blue-main);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: var(--font);
+    white-space: nowrap;
+  }
+  .mf-search-btn:hover { background: var(--blue-deeper); }
+}
+
+/* ── DÉTAILS TECHNIQUES AUDIT — CORRECTIONS THÈME CLAIR ─────── */
+
+/* Grille 3 colonnes → 1 colonne sur mobile */
+.audit-detail-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 12px;
+  padding: 16px;
+}
+@media (max-width: 900px) {
+  .audit-detail-grid { grid-template-columns: 1fr 1fr !important; }
+}
+@media (max-width: 768px) {
+  .audit-detail-grid { grid-template-columns: 1fr !important; }
+}
+
+/* KPI grid 6 colonnes → responsive */
+.audit-kpi-grid {
+  display: grid !important;
+  grid-template-columns: repeat(6, 1fr) !important;
+  gap: 10px;
+}
+@media (max-width: 1100px) {
+  .audit-kpi-grid { grid-template-columns: repeat(3, 1fr) !important; }
+}
+@media (max-width: 768px) {
+  .audit-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* Block header : texte dark hardcodé → lisible sur fond bleu */
+.audit-block [style*="rgba(255,255,255,.72)"] {
+  color: rgba(255,255,255,.95) !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: .12em !important;
+}
+
+/* KV rows dans les blocs */
+.audit-block [style*="display:contents"] span:first-child {
+  color: var(--text-sec) !important;
+  font-size: 11px !important;
+}
+.audit-block [style*="display:contents"] span:last-child {
+  color: var(--text) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+/* Liens externes : bordure top visible */
+.audit-links {
+  border-top: 1px solid var(--border) !important;
+}
+.audit-links .action-link {
+  color: var(--blue-dark) !important;
+  background: var(--blue-pale) !important;
+  border-color: #B0D6EF !important;
+}
+.audit-links .action-link[style*="accent2"],
+.audit-links .action-link[style*="accent"] {
+  color: var(--blue-dark) !important;
+  background: var(--blue-pale) !important;
+}
+.audit-links .action-link[style*="f59e0b"] {
+  color: var(--warn) !important;
+  background: var(--warn-bg) !important;
+  border-color: #F5C40066 !important;
+}
+.audit-links .action-link[style*="22d3ee"] {
+  color: var(--blue-main) !important;
+  background: var(--blue-pale) !important;
+}
+
+/* metricBox : valeurs bien colorées */
+.audit-kpi-grid [style*="background:var(--surface2)"] {
+  border: 1px solid var(--border) !important;
+  border-radius: 10px !important;
+}
+
+/* Sur mobile : parcours rénovation — grille 4 cols → 2 cols */
+@media (max-width: 768px) {
+  .reno-card-body [style*="grid-template-columns:repeat(4,1fr)"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}

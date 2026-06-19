@@ -103,33 +103,57 @@
       <p class="subtitle">DPE et audits autour de votre position ou d'une adresse — rayon ajustable</p>
 
       <!-- Ligne adresse -->
-      <div class="row" style="margin-bottom:10px">
-        <div class="field" style="max-width:120px">
-          <label>Numéro</label>
-          <input type="text" id="inp-num" placeholder="ex : 30" onkeydown="if(event.key==='Enter')searchAddr()">
+      <div class="addr-form">
+        <div class="addr-form-row1">
+          <div class="field addr-num">
+            <label>Numéro</label>
+            <input type="text" id="inp-num" placeholder="ex : 30" onkeydown="if(event.key==='Enter')searchAddr()">
+          </div>
+          <div class="field addr-rue">
+            <label>Rue</label>
+            <input type="text" id="inp-rue" placeholder="ex : Rue Jean Becaert" onkeydown="if(event.key==='Enter')searchAddr()">
+          </div>
         </div>
-        <div class="field">
-          <label>Rue</label>
-          <input type="text" id="inp-rue" placeholder="ex : Rue Jean Becaert" onkeydown="if(event.key==='Enter')searchAddr()">
+        <div class="addr-form-row2">
+          <div class="field addr-ville">
+            <label>Ville ou code postal</label>
+            <input type="text" id="inp-ville" placeholder="ex : Dunkerque ou 59140" onkeydown="if(event.key==='Enter')searchAddr()">
+          </div>
+          <div class="field addr-size pc-only-block">
+            <label>Résultats</label>
+            <select id="inp-addr-size">
+              <option value="10">10</option>
+              <option value="20" selected>20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+          <button class="btn btn-go addr-btn" id="btn-addr" onclick="searchAddr()">→ Rechercher</button>
         </div>
-        <div class="field" style="max-width:220px">
-          <label>Ville ou code postal</label>
-          <input type="text" id="inp-ville" placeholder="ex : Dunkerque ou 59140" onkeydown="if(event.key==='Enter')searchAddr()">
-        </div>
-        <div class="field" style="max-width:100px">
-          <label>Résultats</label>
-          <select id="inp-addr-size">
-            <option value="10">10</option>
-            <option value="20" selected>20</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
-          </select>
-        </div>
-        <button class="btn btn-go" id="btn-addr" onclick="searchAddr()" style="align-self:flex-end">→ Rechercher</button>
       </div>
 
-      <!-- Mode carte proximité -->
-      <div style="display:flex;align-items:center;gap:14px;margin:-2px 0 14px;padding:10px 14px;background:rgba(0,141,215,.06);border:1px solid rgba(0,141,215,.18);border-radius:8px;flex-wrap:wrap">
+      <!-- Filtres de base — MOBILE uniquement : barre compacte 1 ligne -->
+      <div class="map-filters-mobile">
+        <label class="mf-check"><input type="checkbox" id="f-map-dpe-m" checked onchange="document.getElementById('f-map-dpe').checked=this.checked;applyMapDisplayFilters&&applyMapDisplayFilters()"> 🏠 DPE</label>
+        <label class="mf-check"><input type="checkbox" id="f-map-audit-m" checked onchange="document.getElementById('f-map-audit').checked=this.checked;applyMapDisplayFilters&&applyMapDisplayFilters()"> 📋 Audits</label>
+        <span class="mf-sep">|</span>
+        <label class="mf-check mf-radius-label">
+          📍
+          <select class="mf-select" onchange="document.getElementById('f-map-radius').value=this.value;applyMapDisplayFilters&&applyMapDisplayFilters()">
+            <option value="30">30 m</option>
+            <option value="50" selected>50 m</option>
+            <option value="100">100 m</option>
+            <option value="200">200 m</option>
+            <option value="500">500 m</option>
+            <option value="750">750 m</option>
+            <option value="1000">1 km</option>
+          </select>
+        </label>
+        <button class="mf-search-btn" onclick="searchAddr()">→</button>
+      </div>
+
+      <!-- Filtres de base — version PC complète (inchangée) -->
+      <div class="map-filters-pc" style="display:flex;align-items:center;gap:14px;margin:-2px 0 14px;padding:10px 14px;background:rgba(0,141,215,.06);border:1px solid rgba(0,141,215,.18);border-radius:8px;flex-wrap:wrap">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;color:var(--text);font-family:var(--mono);text-transform:none;letter-spacing:0">
           <input type="checkbox" id="f-map-nearby" checked style="width:auto">
           Mode carte proximité
@@ -622,6 +646,21 @@ function mobileNav(btn, panelId) {
   btn.classList.add('active');
   if (typeof window.activatePanel === 'function') window.activatePanel(panelId);
 }
+
+/* ── Bandeau mobile : disparaît après 30 s ── */
+document.addEventListener('DOMContentLoaded', function () {
+  const banner = document.getElementById('mobile-banner');
+  if (!banner) return;
+  setTimeout(function () {
+    banner.style.transition = 'opacity .6s ease, max-height .6s ease, padding .6s ease';
+    banner.style.opacity    = '0';
+    banner.style.maxHeight  = '0';
+    banner.style.padding    = '0';
+    banner.style.overflow   = 'hidden';
+    // Retirer du flux après l'animation
+    setTimeout(function () { banner.style.display = 'none'; }, 650);
+  }, 30000);
+});
 
 /* ── Coche expert mobile ──
    Bascule la classe 'mobile-expert-on' sur la div result cible.

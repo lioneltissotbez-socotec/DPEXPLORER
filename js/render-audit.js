@@ -65,7 +65,7 @@
   }
 
   function block(title, color, rows) {
-    return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden">'
+    return '<div class="audit-block" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden">'
       + '<div style="background:' + color + ';padding:8px 14px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.72)">' + esc(title) + '</div>'
       + '<div style="display:grid;grid-template-columns:1fr 1fr;padding:4px 14px">' + rows.join('') + '</div>'
       + '</div>';
@@ -111,7 +111,7 @@
       ? 'https://www.geoportail.gouv.fr/carte?c=' + lon + ',' + lat + '&z=20&l0=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2::GEOPORTAIL:OGC:WMTS(1)&l1=CADASTRALPARCELS.PARCELLAIRE_EXPRESS::GEOPORTAIL:OGC:WMTS(1)&permalink=yes'
       : '';
 
-    let links = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08)">';
+    let links = '<div class="audit-links" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">';
     if (maps)     links += '<a href="' + maps + '" target="_blank" rel="noopener" class="action-link">🗺 Maps</a>';
     if (street)   links += '<a href="' + street + '" target="_blank" rel="noopener" class="action-link">👁 Street View</a>';
     if (auditUrl) links += '<a href="' + auditUrl + '" target="_blank" rel="noopener" class="action-link" style="color:var(--accent2)">📋 Audit ADEME</a>';
@@ -137,18 +137,19 @@
     const isInitial = step.role === 'initial';
     const isFinal = step.role === 'final';
     const accent = isInitial ? 'var(--muted)' : (isFinal ? 'var(--accent)' : 'var(--accent2)');
+    const isSynthetic = r._synthetic === true;
 
     return '<div class="reno-card">'
       + '<div class="reno-card-head">'
         + '<div class="scenario-num" style="background:rgba(74,222,128,.12);color:' + accent + '">' + (i + 1) + '</div>'
         + '<div style="flex:1;min-width:0">'
-          + '<div style="font-size:13px;font-weight:700;color:var(--text)">' + esc(label) + '</div>'
+          + '<div style="font-size:13px;font-weight:700;color:var(--text)">' + esc(label) + (isSynthetic && !isInitial ? ' <span style="font-size:10px;color:var(--muted);font-family:var(--mono);font-weight:400">(estimation)</span>' : '') + '</div>'
           + '<div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px">' + esc(step.categorie_scenario || 'scénario') + '</div>'
         + '</div>'
         + '<div style="display:flex;align-items:center;gap:8px">' + badge(step.classe_bilan_dpe) + badge(step.etiquette_ges) + '</div>'
       + '</div>'
       + '<div class="reno-card-body">'
-        + '<div style="font-size:12px;color:var(--text);line-height:1.6;margin-bottom:10px">' + (isInitial ? '<span style="color:var(--muted)">État initial avant travaux</span>' : renderTravauxList(step.travaux)) + '</div>'
+        + '<div style="font-size:12px;color:var(--text);line-height:1.6;margin-bottom:10px">' + (isInitial ? (isSynthetic ? '<span style="color:var(--muted)">État initial — valeurs reconstituées depuis les gains cumulés</span>' : '<span style="color:var(--muted)">État initial avant travaux</span>') : renderTravauxList(step.travaux)) + '</div>'
         + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">'
           + '<div class="kpi-box"><div class="v" style="color:#22d3ee">' + fmtN(step.conso_5_usages_m2, ' kWh/m²') + '</div><div class="l">Conso EF</div></div>'
           + '<div class="kpi-box"><div class="v" style="color:#f87171">' + fmtN(step.emission_ges_5_usages_m2, ' kgCO₂/m²') + '</div><div class="l">GES</div></div>'
@@ -205,7 +206,7 @@
       + renderExternalLinks(audit)
     + '</div>';
 
-    html += '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px">'
+    html += '<div class="audit-kpi-grid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px">'
       + metricBox(fmtN(initial.conso_5_usages_m2, ' kWh'), 'Conso initiale / m²', '#f59e0b')
       + metricBox(fmtN(final.conso_5_usages_m2, ' kWh'), 'Conso finale / m²', 'var(--accent)')
       + metricBox(pctFromGain(gainEf), 'Gain énergie', 'var(--accent2)')
@@ -214,8 +215,8 @@
       + metricBox(fmtN(finalCost, ' €'), 'Coût travaux cumulé', '#f59e0b')
     + '</div>';
 
-    html += '<details open class="expert-only expert-details expert-section" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden"><summary style="padding:14px 18px;cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono)">Détails techniques de l’audit</summary><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px">'
-      + block('🏠 Logement audité', '#1e3a5f', [
+    html += '<details open class="expert-only expert-details expert-section" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden"><summary style="padding:14px 18px;cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono)">Détails techniques de l’audit</summary><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px" class="audit-detail-grid">'
+      + block('🏠 Logement audité', 'var(--blue-dark)', [
           kv('Surface', esc(fmtN(audit.surface_habitable_logement, ' m²'))),
           kv('Année construction', esc(fmt(audit.annee_construction))),
           kv('Période construction', esc(fmt(audit.periode_construction))),
@@ -223,7 +224,7 @@
           kv('Identifiant BAN', esc(fmt(audit.identifiant_ban))),
           kv('ID RNB', esc(fmt(audit.id_rnb)))
         ])
-      + block('🔥 Systèmes initial / final', '#3b1c1c', [
+      + block('🔥 Systèmes initial / final', 'var(--blue-deeper)', [
           kv('Chauffage initial', esc(fmt(initial.type_energie_principale_chauffage))),
           kv('Chauffage final', esc(fmt(final.type_energie_principale_chauffage))),
           kv('ECS initiale', esc(fmt(initial.type_energie_principale_ecs))),
@@ -231,7 +232,7 @@
           kv('Méthode', esc(fmt(audit.method))),
           kv('Date audit', esc(fmt(audit.date_etablissement_audit)))
         ])
-      + block('🧱 Enveloppe finale', '#2a1f0a', [
+      + block('🧱 Enveloppe finale', '#2a4a1a', [
           kv('Murs', esc(fmt(final.qualite_isolation_murs))),
           kv('Menuiseries', esc(fmt(final.qualite_isolation_menuiseries))),
           kv('Plancher bas', esc(fmt(final.qualite_isolation_plancher_bas))),
